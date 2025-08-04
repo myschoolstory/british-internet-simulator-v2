@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>British WiFi Experience (Satire)</title>
+    <style>
+        /* Embed Google Fonts for an 8-bit feel */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f8f8f8;
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbar if canvas is larger than viewport */
+        }
+
+        /* Styling for the Google Search mimicry */
+        #search-container {
+            text-align: center;
+            transition: opacity 0.5s ease-in-out; /* Smooth fade-out */
+        }
+
+        #google-logo {
+            width: 272px;
+            height: 92px;
+            margin-bottom: 20px;
+        }
+
+        #search-input {
+            width: 500px;
+            max-width: 90%; /* Responsive width */
+            padding: 12px 20px;
+            border: 1px solid #dfe1e5;
+            border-radius: 24px;
+            font-size: 16px;
+            outline: none;
+            box-shadow: 0 2px 5px 1px rgba(64,60,67,.16);
+            transition: box-shadow 0.3s;
+        }
+
+        #search-input:focus {
+            box-shadow: 0 1px 6px 0 rgba(32,33,36,.28);
+        }
+
+        /* Styling for the 8-bit game */
+        #game-container {
+            display: none; /* Hidden by default, shown after "search" */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative; /* For game over overlay */
+            background-color: #333; /* Dark background for game console feel */
+            border: 5px solid #000;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            padding: 20px;
+            box-sizing: border-box;
+            color: #eee;
+        }
+
+        canvas {
+            background-color: #222; /* Game area background */
+            border: 2px solid #555;
+            display: block; /* Remove extra space below canvas */
+            margin-bottom: 10px;
+            image-rendering: pixelated; /* Crucial for 8-bit look */
+            image-rendering: -moz-crisp-edges; /* Firefox specific */
+            image-rendering: crisp-edges; /* Standard for modern browsers */
+        }
+
+        #game-info {
+            font-size: 1.2em;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 600px; /* Match canvas width roughly */
+        }
+
+        /* Game Over screen overlay */
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9); /* Semi-transparent black */
+            color: white;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            z-index: 10; /* Ensure it's on top */
+        }
+
+        #game-over button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            font-size: 1em;
+            cursor: pointer;
+            background-color: #007bff; /* Blue button */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+            font-family: 'Press Start 2P', cursive; /* Apply pixel font */
+        }
+
+        #game-over button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Apply 8-bit font to relevant elements */
+        body, #game-info, #game-over {
+            font-family: 'Press Start 2P', cursive, Arial, sans-serif;
+            font-size: 16px;
+        }
+        #game-over { font-size: 24px; }
+        #game-over h2 { font-size: 36px; margin-bottom: 10px;}
+        #game-over p { font-size: 20px; margin-bottom: 5px;}
+
+        /* Basic responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            #google-logo {
+                width: 200px;
+                height: auto;
+            }
+            #search-input {
+                width: 90%;
+            }
+            #game-container {
+                width: 100%;
+                padding: 10px;
+            }
+            canvas {
+                width: 100%;
+                height: auto;
+            }
+            #game-info, #game-over {
+                font-size: 0.8em;
+            }
+            #game-over h2 { font-size: 28px; }
+            #game-over p { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="search-container">
+        <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google" id="google-logo">
+        <input type="text" id="search-input" placeholder="Search Google or type a URL">
+    </div>
+
+    <div id="game-container">
+        <div id="game-info">
+            <span id="score-display">Score: 0</span>
+            <span id="time-display">Time: 05:00</span>
+        </div>
+        <canvas id="game-canvas"></canvas>
+        <div id="game-over">
+            <h2 id="game-over-title">GAME OVER!</h2>
+            <p id="final-score">Your Score: 0</p>
+            <p id="game-result"></p>
+            <button id="play-again-btn">Try Again, Citizen!</button>
+        </div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('search-input');
+        const searchContainer = document.getElementById('search-container');
+        const gameContainer = document.getElementById('game-container');
+        const gameCanvas = document.getElementById('game-canvas');
+        const ctx = gameCanvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score-display');
+        const timeDisplay = document.getElementById('time-display');
+        const gameOverScreen = document.getElementById('game-over');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const gameResultDisplay = document.getElementById('game-result');
+        const playAgainBtn = document.getElementById('play-again-btn');
+
+        const autocorrectString = "pornhub";
+        let autocorrectIndex = 0;
+
+        // Game settings (balanced for "extremely hard" over 5 minutes)
+        const GAME_WIDTH = 640;
+        const GAME_HEIGHT = 480;
+        const PLAYER_SIZE = 30;
+        const INITIAL_PAPER_SPEED = 1.5; // Start speed of falling papers
+        const MAX_PAPER_SPEED = 8;     // Max speed papers can reach
+        const PAPER_ACCELERATION_RATE = 0.00005; // How much speed increases per frame (small increment for gradual difficulty)
+        const INITIAL_PAPER_INTERVAL = 1000; // ms between new papers
+        const MIN_PAPER_INTERVAL = 100; // ms, fastest papers can spawn
+        const PAPER_INTERVAL_DECREASE_RATE = 0.999; // Multiplier to reduce interval per frame (faster spawns)
+
+        let player = {
+            x: GAME_WIDTH / 2 - PLAYER_SIZE / 2,
+            y: GAME_HEIGHT - PLAYER_SIZE * 2, /* Player positioned near bottom */
+            width: PLAYER_SIZE,
+            height: PLAYER_SIZE,
+            dx: 0 /* Delta X for keyboard movement, mouse overrides */
+        };
+
+        let papers = [];
+        let score = 0;
+        let gameRunning = false;
+        let animationFrameId;
+        let gameStartTime;
+        const GAME_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+        let lastPaperSpawnTime = 0;
+        let currentPaperInterval = INITIAL_PAPER_INTERVAL;
+        let currentPaperSpeed = INITIAL_PAPER_SPEED;
+
+        gameCanvas.width = GAME_WIDTH;
+        gameCanvas.height = GAME_HEIGHT;
+
+        // --- Search Simulation Logic ---
+        searchInput.addEventListener('keydown', function(event) {
+            event.preventDefault(); // Stop actual user typing
+
+            if (autocorrectIndex < autocorrectString.length) {
+                // Simulate typing character by character, forcefully overriding user input
+                const currentAutocorrectPart = autocorrectString.substring(0, autocorrectIndex + 1);
+                searchInput.value = currentAutocorrectPart;
+                autocorrectIndex++;
+
+                if (autocorrectIndex === autocorrectString.length) {
+                    // All letters "typed", simulate hitting enter by transitioning to game
+                    setTimeout(() => {
+                        searchContainer.style.opacity = '0'; // Fade out search container
+                        setTimeout(() => {
+                            searchContainer.style.display = 'none';
+                            gameContainer.style.display = 'flex'; // Show game container
+                            startGame(); // Start the game
+                        }, 500); // Delay for fade-out transition
+                    }, 300); // Short delay after full autocorrect for visual effect
+                }
+            }
+        });
+
+        // --- Game Logic ---
+        function startGame() {
+            // Reset game state
+            player.x = GAME_WIDTH / 2 - PLAYER_SIZE / 2;
+            player.dx = 0;
+            papers = [];
+            score = 0;
+            currentPaperSpeed = INITIAL_PAPER_SPEED;
+            currentPaperInterval = INITIAL_PAPER_INTERVAL;
+            
+            // Update UI
+            scoreDisplay.textContent = `Score: ${score}`;
+            timeDisplay.textContent = `Time: 05:00`;
+            gameOverScreen.style.display = 'none'; // Hide game over screen
+
+            // Start game loop
+            gameRunning = true;
+            gameStartTime = Date.now();
+            lastPaperSpawnTime = Date.now();
+            gameLoop();
+        }
+
+        function endGame(won = false) {
+            cancelAnimationFrame(animationFrameId); // Stop the game loop
+            gameRunning = false;
+            gameOverScreen.style.display = 'flex'; // Show game over screen
+            finalScoreDisplay.textContent = `Your Score: ${score}`;
+
+            if (won) {
+                gameResultDisplay.textContent = "Congratulations! You survived British Wi-Fi!";
+                gameResultDisplay.style.color = '#0f0'; /* Green for success */
+                gameOverScreen.querySelector('h2').textContent = "CONNECTION SUCCESSFUL!";
+            } else {
+                gameResultDisplay.textContent = "CENSORED! Connection dropped due to inappropriate content. Try harder!";
+                gameResultDisplay.style.color = '#f00'; /* Red for failure */
+                gameOverScreen.querySelector('h2').textContent = "CONNECTION LOST!";
+            }
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            update();
+            draw();
+
+            animationFrameId = requestAnimationFrame(gameLoop); // Request next frame
+        }
+
+        function update() {
+            const now = Date.now();
+            const elapsedTime = now - gameStartTime;
+
+            // Update player position based on keyboard input (mouse movement takes precedence)
+            player.x += player.dx;
+            // Keep player within canvas bounds
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > GAME_WIDTH) player.x = GAME_WIDTH - player.width;
+
+            // Spawn new papers based on interval
+            if (now - lastPaperSpawnTime > currentPaperInterval) {
+                papers.push({
+                    x: Math.random() * (GAME_WIDTH - 30), // Random X position, ensuring paper is fully on screen
+                    y: -40, // Start above canvas
+                    width: 15 + Math.random() * 20, // Varying widths (15-35px)
+                    height: 20 + Math.random() * 10, // Varying heights (20-30px)
+                    speed: currentPaperSpeed + (Math.random() - 0.5) * 0.5 // Slight random speed variation for each paper
+                });
+                lastPaperSpawnTime = now;
+
+                // Make it harder: decrease interval for faster paper spawns
+                currentPaperInterval = Math.max(MIN_PAPER_INTERVAL, currentPaperInterval * PAPER_INTERVAL_DECREASE_RATE);
+            }
+
+            // Move and filter papers
+            for (let i = papers.length - 1; i >= 0; i--) {
+                const paper = papers[i];
+                paper.y += paper.speed;
+
+                // Make it harder: increase overall paper speed over time
+                currentPaperSpeed = Math.min(MAX_PAPER_SPEED, currentPaperSpeed + PAPER_ACCELERATION_RATE);
+
+                // Collision detection (Axis-Aligned Bounding Box)
+                if (
+                    player.x < paper.x + paper.width &&
+                    player.x + player.width > paper.x &&
+                    player.y < paper.y + paper.height &&
+                    player.y + player.height > paper.y
+                ) {
+                    endGame(false); // Game Over on collision
+                    return; // Stop update loop immediately
+                }
+
+                // Remove papers that leave the screen and update score
+                if (paper.y > GAME_HEIGHT) {
+                    papers.splice(i, 1); // Remove paper from array
+                    score++; // Increment score for dodged paper
+                    scoreDisplay.textContent = `Score: ${score}`;
+                }
+            }
+
+            // Update timer display
+            const timeLeft = Math.max(0, GAME_DURATION - elapsedTime);
+            const minutes = Math.floor(timeLeft / 60000);
+            const seconds = Math.floor((timeLeft % 60000) / 1000);
+            timeDisplay.textContent = `Time: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            // Check if game duration has passed
+            if (timeLeft <= 0) {
+                endGame(true); // Player survived 5 minutes
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT); // Clear the canvas
+
+            // Draw player (a simple square)
+            ctx.fillStyle = '#00FFFF'; /* Cyan for the player */
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // Draw papers (white rectangles)
+            ctx.fillStyle = '#FFFFFF'; /* White for the papers */
+            papers.forEach(paper => {
+                ctx.fillRect(paper.x, paper.y, paper.width, paper.height);
+            });
+        }
+
+        // --- Input Handling for Player Movement ---
+        // Mouse movement (primary control for "Papers Please" feel)
+        gameCanvas.addEventListener('mousemove', (e) => {
+            if (gameRunning) {
+                const rect = gameCanvas.getBoundingClientRect();
+                const scaleX = gameCanvas.width / rect.width; // Account for canvas scaling if CSS changes size
+                const mouseX = (e.clientX - rect.left) * scaleX;
+                player.x = mouseX - player.width / 2; // Center player on mouse X position
+            }
+        });
+
+        // Keyboard movement (alternative/supplementary control)
+        document.addEventListener('keydown', (e) => {
+            if (gameRunning) {
+                if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
+                    player.dx = -5; // Move left
+                } else if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') {
+                    player.dx = 5; // Move right
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (gameRunning && (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key.toLowerCase() === 'a' || e.key.toLowerCase() === 'd')) {
+                player.dx = 0; // Stop horizontal movement
+            }
+        });
+
+        // Restart game button functionality
+        playAgainBtn.addEventListener('click', () => {
+            startGame(); // Simply restart the game
+        });
+
+        // Initial focus on the search bar when the page loads
+        window.onload = () => {
+            searchInput.focus();
+        };
+
+    </script>
+</body>
+</html>
